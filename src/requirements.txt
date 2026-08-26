@@ -1,3 +1,5 @@
 opencv-python
 ultralytics
 opencv-contrib-python
+gpiozero
+lgpio
