@@ -1,29 +1,46 @@
 import cv2
-from ultralytics import YOLO
 
-# Load the Nano model
-model = YOLO("yolo11n.pt")
+# Initialize the CSRT tracker
+tracker = cv2.TrackerCSRT_create()
 
-# Open webcam connection (0 is typically the default built-in camera)
-cap = cv2.VideoCapture(0)
+# Read the video stream or video file
+video = cv2.VideoCapture(0)
 
-while cap.isOpened():
-    success, frame = cap.read()
+# Read the very first frame
+success, frame = video.read()
+if not success:
+    print("Failed to read video")
+    exit()
+
+# Manually select the bounding box (ROI) on the first frame
+# Press ENTER or SPACE after selecting the box
+bbox = cv2.selectROI("Tracking Window", frame, fromCenter=False, showCrosshair=True)
+
+# Initialize the tracker with the selected bounding box
+tracker.init(frame, bbox)
+
+while True:
+    success, frame = video.read()
     if not success:
         break
-
-    # Run inference on the current live frame
-    results = model(frame)
-
-    # Visualize results directly back onto the frame
-    annotated_frame = results[0].plot()
-
-    # Display image window
-    cv2.imshow("YOLO Nano Real-Time Detection", annotated_frame)
-
-    # Break out if 'q' key is pressed
+        
+    # Update the tracker with the new frame
+    success, bbox = tracker.update(frame)
+    
+    # If the object is tracked successfully, draw the rectangle
+    if success:
+        x, y, w, h = [int(v) for v in bbox]
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(frame, "Tracking", (75, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    else:
+        cv2.putText(frame, "Lost", (75, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        
+    # Display the output
+    cv2.imshow("Tracking Window", frame)
+    
+    # Exit loop if 'q' key is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-cap.release()
+video.release()
 cv2.destroyAllWindows()
