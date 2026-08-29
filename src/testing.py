@@ -1,4 +1,6 @@
 import cv2
+from libcamera import Transform
+from picamera2 import Picamera2
 
 
 
@@ -6,12 +8,14 @@ def main():
     # Initialize the CSRT tracker
     tracker = cv2.TrackerCSRT_create()
 
-    # Read the video stream or video file
-    video = cv2.VideoCapture(0)
+    # Initialize Pi camera
+    picam2 = Picamera2()
+    picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": (640, 480)}, transform=Transform(hflip=True, vflip=True)))
+    picam2.start()
 
     # Read the very first frame
-    success, frame = video.read()
-    if not success:
+    frame = picam2.capture_array()
+    if frame is None:
         print("Failed to read video")
         exit()
 
@@ -23,8 +27,8 @@ def main():
     tracker.init(frame, bbox)
 
     while True:
-        success, frame = video.read()
-        if not success:
+        frame = picam2.capture_array()
+        if frame is None:
             break
             
         # Update the tracker with the new frame
@@ -45,5 +49,5 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    video.release()
+    picam2.stop()
     cv2.destroyAllWindows()

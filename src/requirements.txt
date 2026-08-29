@@ -3,3 +3,6 @@ ultralytics
 opencv-contrib-python
 gpiozero
 lgpio
+adafruit-blinka
+adafruit-circuitpython-pca9685
+adafruit-circuitpython-servokit
