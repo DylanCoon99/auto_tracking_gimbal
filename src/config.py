@@ -33,7 +33,7 @@ make it a context manager class: when in closes clear the window, exit and set t
 
 
 class GimbalConfig:
-	def __init__(self, channels=16, address=0x40, size=(640, 480)):
+	def __init__(self, channels=16, address=0x40, size=(640, 480), P=0, D=0):
 		"""Initialize parameters needed for setup."""
 		self.channels = channels
 		self.address = address
@@ -43,7 +43,8 @@ class GimbalConfig:
 		self.picam2 = None
 		self.servo_kit = None
 		self.current_frame = None
-		self.config = None
+		self.P = P
+		self.D = D
 
 		# Configures the root logger globally
 		logging.basicConfig(
@@ -81,12 +82,7 @@ class GimbalConfig:
 		# Initialize the tracker with the selected bounding box
 		self.tracker.init(self.current_frame, bbox)
 
-
 		return self
-
-
-	def get_current_frame(self):
-		return self.current_frame
 
 
 	def run(self):
@@ -103,6 +99,7 @@ class GimbalConfig:
 			# If the object is tracked successfully, draw the rectangle
 			if success:
 				x, y, w, h = [int(v) for v in bbox]
+				self.logger.info(f"BBOX ERROR: {self._get_error(bbox)}")
 				cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 				cv2.putText(frame, "Tracking", (75, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 			else:
@@ -117,15 +114,24 @@ class GimbalConfig:
 
 		return
 
-	def _get_error(self):
+	def _get_error(self, bbox):
 		# gets the error of the current frame
+		x, y, w, h = [int(v) for v in bbox]
 
-		return
+		frame_center = (self.size[0] / 2, self.size[1] / 2)
+		bbox_center = (x + w/2, y + h/2)
+
+		error_x = (bbox_center[0] - frame_center[0]) / (self.size[0] / 2)
+		error_y = (bbox_center[1] - frame_center[1]) / (self.size[1] / 2)
+
+		return (error_x, error_y)
 
 
 	def _update_servo_state(self):
 		# interfaces with the servo kit (servo.py)
 		# updates the servo state
+
+
 
 		return
 
