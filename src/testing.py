@@ -51,3 +51,4 @@ def main():
 
     picam2.stop()
     cv2.destroyAllWindows()
+
