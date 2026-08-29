@@ -1,4 +1,5 @@
-from src.track import track
+#from src.testing import main
+from src.config import GimbalConfig
 
 
 
@@ -13,6 +14,11 @@ from src.track import track
 def main():
 
 
+	with GimbalConfig() as gc:
+		gc.run()
+
+
+
 	# instantiate the tracking loop
 
 	# on each iteration
@@ -22,7 +28,6 @@ def main():
 		# measure the error for the current state of the gimbal
 
 		# move the gimbal to the next state
-
 
 
 	return

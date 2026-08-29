@@ -33,17 +33,17 @@ make it a context manager class: when in closes clear the window, exit and set t
 
 
 class GimbalConfig:
-    def __init__(self, channels=16, address=0x40, size=(640, 480)):
-        """Initialize parameters needed for setup."""
-        self.channels = channels
-        self.address = address
-        self.size = size
-        self.logger = logging.getLogger(__name__)
-        self.tracker = None
-        self.picam2 = None
-        self.servo_kit = None
-        self.current_frame = None
-        self.config = None
+	def __init__(self, channels=16, address=0x40, size=(640, 480)):
+		"""Initialize parameters needed for setup."""
+		self.channels = channels
+		self.address = address
+		self.size = size
+		self.logger = logging.getLogger(__name__)
+		self.tracker = None
+		self.picam2 = None
+		self.servo_kit = None
+		self.current_frame = None
+		self.config = None
 
 		# Configures the root logger globally
 		logging.basicConfig(
@@ -65,46 +65,79 @@ class GimbalConfig:
 
 		# Initialize Pi camera
 		self.picam2 = Picamera2()
-		self.picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888", "size": self.size}, transform=Transform(hflip=True, vflip=True)))
+		self.picam2.configure(self.picam2.create_preview_configuration(main={"format": "RGB888", "size": self.size}, transform=Transform(hflip=True, vflip=True)))
 		self.picam2.start()
 
+		# Read the very first frame
+		self.current_frame = self.picam2.capture_array()
+		if self.current_frame is None:
+			self.logger.error("Failed to read video")
+			exit()
+
+		# Manually select the bounding box (ROI) on the first frame
+		# Press ENTER or SPACE after selecting the box
+		bbox = cv2.selectROI("Tracking Window", self.current_frame, fromCenter=False, showCrosshair=True)
+
+		# Initialize the tracker with the selected bounding box
+		self.tracker.init(self.current_frame, bbox)
 
 
-
-		return self.config  # This value is bound to the 'as' variable
-
+		return self
 
 
 	def get_current_frame(self):
+		return self.current_frame
 
+
+	def run(self):
+
+		while True:
+			frame = self.picam2.capture_array()
+			self.current_frame = frame
+			if frame is None:
+				break
+
+			# Update the tracker with the new frame
+			success, bbox = self.tracker.update(frame)
+
+			# If the object is tracked successfully, draw the rectangle
+			if success:
+				x, y, w, h = [int(v) for v in bbox]
+				cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+				cv2.putText(frame, "Tracking", (75, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+			else:
+				cv2.putText(frame, "Lost", (75, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+			
+			# Display the output
+			cv2.imshow("Tracking Window", frame)
+
+			# Exit loop if 'q' key is pressed
+			if cv2.waitKey(1) & 0xFF == ord('q'):
+				break
+
+		return
+
+	def _get_error(self):
+		# gets the error of the current frame
 
 		return
 
 
-	def get_next_frame(self):
-
-
-		return
-
-
-	def get_error(self):
-
-		return
-
-
-	def update_state(self):
+	def _update_servo_state(self):
+		# interfaces with the servo kit (servo.py)
+		# updates the servo state
 
 		return
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		"""Clean up the resource, regardless of errors."""
-		logger.info("Exiting GimbalConfig")
+		self.logger.info("Exiting GimbalConfig")
 		self.connection = None
 
 		if exc_type is not None:
-			logger.error(f"An error occurred: {exc_val}")
+			self.logger.error(f"An error occurred: {exc_val}")
 			# Return True to suppress the exception, False to let it propagate
 			return False
 
-		logger.info("Closing Window")
+		self.logger.info("Closing Window")
 
