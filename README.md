@@ -2,6 +2,12 @@
 
 A 2-axis object tracking gimbal powered by a Raspberry Pi 5. The system uses a Pi camera and OpenCV's CSRT correlation tracker to follow a user-selected target in real time, adjusting pan and tilt servos via proportional error feedback.
 
+## Mechanical Design
+
+The gimbal housing was designed in Fusion 360 and 3D printed.
+
+![Gimbal](gimbal.png)
+
 ## Hardware
 
 - Raspberry Pi 5
