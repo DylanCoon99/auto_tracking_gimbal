@@ -1,8 +1,10 @@
 # create a data class that stores the state of our gimbal
 import logging
+import time
 import cv2
 from libcamera import Transform
 from picamera2 import Picamera2
+from src.servo import servo_kit_setup, update_servos, reset
 
 
 
@@ -33,7 +35,7 @@ make it a context manager class: when in closes clear the window, exit and set t
 
 
 class GimbalConfig:
-	def __init__(self, channels=16, address=0x40, size=(640, 480), P=0, D=0):
+	def __init__(self, channels=16, address=0x40, size=(640, 480), kp=5, kd=0):
 		"""Initialize parameters needed for setup."""
 		self.channels = channels
 		self.address = address
@@ -43,8 +45,8 @@ class GimbalConfig:
 		self.picam2 = None
 		self.servo_kit = None
 		self.current_frame = None
-		self.P = P
-		self.D = D
+		self.kp = kp
+		self.kd = kd
 
 		# Configures the root logger globally
 		logging.basicConfig(
@@ -62,12 +64,17 @@ class GimbalConfig:
 
 	def __enter__(self):
 		"""Set up the resource and return the target variable."""
+
+		self.servo_kit = servo_kit_setup(self.channels, self.address)
+		reset(self.servo_kit)
+
 		self.tracker = cv2.TrackerCSRT_create()
 
 		# Initialize Pi camera
 		self.picam2 = Picamera2()
 		self.picam2.configure(self.picam2.create_preview_configuration(main={"format": "RGB888", "size": self.size}, transform=Transform(hflip=True, vflip=True)))
 		self.picam2.start()
+		time.sleep(2)  # let camera auto-exposure settle
 
 		# Read the very first frame
 		self.current_frame = self.picam2.capture_array()
@@ -81,6 +88,8 @@ class GimbalConfig:
 
 		# Initialize the tracker with the selected bounding box
 		self.tracker.init(self.current_frame, bbox)
+
+		
 
 		return self
 
@@ -99,7 +108,9 @@ class GimbalConfig:
 			# If the object is tracked successfully, draw the rectangle
 			if success:
 				x, y, w, h = [int(v) for v in bbox]
-				self.logger.info(f"BBOX ERROR: {self._get_error(bbox)}")
+				error = self._get_error(bbox)
+				self.logger.info(f"BBOX ERROR: {error}")
+				self._update_servo_state(error)
 				cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 				cv2.putText(frame, "Tracking", (75, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 			else:
@@ -127,11 +138,12 @@ class GimbalConfig:
 		return (error_x, error_y)
 
 
-	def _update_servo_state(self):
+	def _update_servo_state(self, error):
 		# interfaces with the servo kit (servo.py)
 		# updates the servo state
 
-
+		self.logger.info("Updating servos")
+		update_servos(self.servo_kit, error, self.kp, self.kd)
 
 		return
 
@@ -146,4 +158,5 @@ class GimbalConfig:
 			return False
 
 		self.logger.info("Closing Window")
+		reset(self.servo_kit)
 
