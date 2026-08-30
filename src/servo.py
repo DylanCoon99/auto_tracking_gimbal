@@ -4,19 +4,6 @@ from adafruit_servokit import ServoKit
 # this will be transparent to my main code
 
 
-
-'''
-MIN_US = 500
-MAX_US = 2500
-PERIOD_US = 1_000_000 / pca.frequency
-
-
-def set_angle(channel: int, angle: float) -> None:
-    angle = max(0.0, min(180.0, angle))
-    pulse_us = MIN_US + (MAX_US - MIN_US) * (angle / 180.0)
-    pca.channels[channel].duty_cycle = int(pulse_us / PERIOD_US * 0xFFFF)
-'''
-
 def servo_kit_setup(channels, address):
 
 	kit = ServoKit(channels=channels, address=address)
