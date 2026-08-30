@@ -35,7 +35,7 @@ make it a context manager class: when in closes clear the window, exit and set t
 
 
 class GimbalConfig:
-	def __init__(self, channels=16, address=0x40, size=(640, 480), kp=5, kd=0):
+	def __init__(self, channels=16, address=0x40, size=(640, 480), kp=10, kd=0):
 		"""Initialize parameters needed for setup."""
 		self.channels = channels
 		self.address = address
@@ -150,13 +150,11 @@ class GimbalConfig:
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		"""Clean up the resource, regardless of errors."""
 		self.logger.info("Exiting GimbalConfig")
-		self.connection = None
+		self.picam2.stop()
+		cv2.destroyAllWindows()
+		reset(self.servo_kit)
 
 		if exc_type is not None:
 			self.logger.error(f"An error occurred: {exc_val}")
-			# Return True to suppress the exception, False to let it propagate
 			return False
-
-		self.logger.info("Closing Window")
-		reset(self.servo_kit)
 

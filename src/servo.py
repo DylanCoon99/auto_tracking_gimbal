@@ -1,7 +1,3 @@
-import time
-import board
-import busio
-from adafruit_pca9685 import PCA9685
 from adafruit_servokit import ServoKit
 
 # this is the file that will interface with the servos
@@ -25,8 +21,8 @@ def servo_kit_setup(channels, address):
 
 	kit = ServoKit(channels=channels, address=address)
 
-	TILT = 0    # PCA9685 channel index for the pan axis
-	PAN = 1   # PCA9685 channel index for the tilt axis
+	PAN = 0    # PCA9685 channel index for the pan axis
+	TILT = 1   # PCA9685 channel index for the tilt axis
 
 	# Calibrate to the specific servo. Many hobby servos require a wider
 	# range than the library default of 750-2250 us to reach full travel.
